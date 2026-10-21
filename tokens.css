@@ -1,0 +1,78 @@
+/* (작동 시안용 사본: 선택자만 html[data-kr-theme] — 이 페이지를 띄우는 곳이 html[data-theme]를 따로 쓰기 때문. 변수 이름·값은 X5 원본 그대로) K Ref-Archive — X5 아뜰리에 오렌지 토큰 · 페이블 5.1 (디자인 검수 방) · 2026-10-21
+   세 가지 밝기: html[data-kr-theme="dark" | "light" | "indigo"]. 기본은 dark(정본 결정 7: 어둡게 + 기억).
+   원칙: --kr-canvas(사진 바닥)는 세 테마 모두 무채색. --kr-acc는 선택·체크·비교 배지·주 실행 버튼에만. */
+
+html[data-kr-theme="dark"] {
+  --kr-bg: #111111; /* 바탕(껍데기 바닥) */
+  --kr-panel: #1b1b1b; /* 면(패널·창·검색 칸) */
+  --kr-panel2: #242424; /* 면2(칩·입력 바탕) */
+  --kr-line: #303030; /* 구분선 */
+  --kr-ink: #f2f2f2; /* 글자 1 */
+  --kr-sub: #c4c4c4; /* 글자 2(보조) */
+  --kr-mute: #9a9a9a; /* 글자 3(흐림) */
+  --kr-acc: #f0923d; /* 강조(오렌지) — 선택·체크·주 실행에만 */
+  --kr-accInk: #1a0d02; /* 강조 위 글자 */
+  --kr-ok: #9ad7b0; /* 성공 */
+  --kr-warn: #e7c178; /* 주의 */
+  --kr-tile: #1a1a1a; /* 사진 칸 바탕(로딩 전) */
+  --kr-canvas: #111111; /* 사진이 놓이는 바닥 — 항상 무채색 */
+  --kr-shell: #111111; /* 레일·상단 바 */
+  --kr-cap-bg: rgba(10,10,10,.78); --kr-cap-ink: #f2f2f2; --kr-cap-sub: #bdbdbd; /* 사진 위 캡션은 테마와 무관하게 고정 */
+}
+html[data-kr-theme="light"] {
+  --kr-bg: #f3f3f0; /* 바탕(껍데기 바닥) */
+  --kr-panel: #ffffff; /* 면(패널·창·검색 칸) */
+  --kr-panel2: #ebebe8; /* 면2(칩·입력 바탕) */
+  --kr-line: #d6d6d2; /* 구분선 */
+  --kr-ink: #191919; /* 글자 1 */
+  --kr-sub: #505050; /* 글자 2(보조) */
+  --kr-mute: #626260; /* 글자 3(흐림) */
+  --kr-acc: #a4480a; /* 강조(오렌지) — 선택·체크·주 실행에만 */
+  --kr-accInk: #ffffff; /* 강조 위 글자 */
+  --kr-ok: #21663a; /* 성공 */
+  --kr-warn: #805000; /* 주의 */
+  --kr-tile: #d8d8d4; /* 사진 칸 바탕(로딩 전) */
+  --kr-canvas: #e6e6e3; /* 사진이 놓이는 바닥 — 항상 무채색 */
+  --kr-shell: #f3f3f0; /* 레일·상단 바 */
+  --kr-cap-bg: rgba(10,10,10,.78); --kr-cap-ink: #f2f2f2; --kr-cap-sub: #bdbdbd; /* 사진 위 캡션은 테마와 무관하게 고정 */
+}
+html[data-kr-theme="indigo"] {
+  --kr-bg: #0e1226; /* 바탕(껍데기 바닥) */
+  --kr-panel: #161b36; /* 면(패널·창·검색 칸) */
+  --kr-panel2: #1f2546; /* 면2(칩·입력 바탕) */
+  --kr-line: #2b3259; /* 구분선 */
+  --kr-ink: #eceef8; /* 글자 1 */
+  --kr-sub: #b0b6d4; /* 글자 2(보조) */
+  --kr-mute: #949bbd; /* 글자 3(흐림) */
+  --kr-acc: #f0923d; /* 강조(오렌지) — 선택·체크·주 실행에만 */
+  --kr-accInk: #1a0d02; /* 강조 위 글자 */
+  --kr-ok: #8fd6a4; /* 성공 */
+  --kr-warn: #f0c674; /* 주의 */
+  --kr-tile: #151515; /* 사진 칸 바탕(로딩 전) */
+  --kr-canvas: #121212; /* 사진이 놓이는 바닥 — 항상 무채색 */
+  --kr-shell: #0e1226; /* 레일·상단 바 */
+  --kr-cap-bg: rgba(10,10,10,.78); --kr-cap-ink: #f2f2f2; --kr-cap-sub: #bdbdbd; /* 사진 위 캡션은 테마와 무관하게 고정 */
+}
+
+:root {
+  /* 둥근 정도 — 역할별. 떠다니는 캡슐(선택 토글·검색 캡슐)만 999px */
+  --kr-r-photo: 0px; --kr-r-chip: 4px; --kr-r-btn: 4px; --kr-r-win: 8px; --kr-r-pill: 999px;
+  /* 간격 */
+  --kr-gap-grid: 4px; --kr-pad-main: 24px; --kr-rail: 0px; /* X5는 왼쪽 레일 없음(위쪽 바) */
+  --kr-cond-w: 220px; --kr-dock-w: 260px; --kr-topbar-h: 52px; --kr-count-h: 44px;
+  /* 글꼴 — UI는 Wanted Sans 고정, 큰 제목만 Hahmlet(한글)·Instrument Serif(라틴), 수치는 tnum */
+  --kr-font-ui: "Wanted Sans", "Noto Sans KR", sans-serif;
+  --kr-font-kr-display: "Hahmlet", "Wanted Sans", serif;
+  --kr-font-latin-display: "Instrument Serif", "Wanted Sans", serif;
+  --kr-fs-ui: 12px; --kr-fs-ui-lg: 13px; --kr-fs-sub: 11px; --kr-fs-title: 40px; --kr-fs-name: 64px; --kr-fs-count: 24px;
+  /* 움직임 — 정본 값 유지(검색화면-확정-시안.md). 새 동작의 값은 움직임_명세.md */
+  --kr-ease-spring: cubic-bezier(.3,1.2,.5,1); --kr-ease-out: cubic-bezier(.2,.8,.2,1); --kr-ease-in-out: cubic-bezier(.4,0,.2,1);
+  --kr-t-hover: 120ms; --kr-t-panel: 180ms; --kr-t-tl-open: 380ms; --kr-t-tl-close: 210ms; --kr-t-reel-open: 550ms; --kr-t-reel-close: 300ms; --kr-t-theme: 180ms;
+}
+
+@media (prefers-reduced-motion: reduce) { :root { --kr-t-hover: 0ms; --kr-t-panel: 0ms; --kr-t-tl-open: 0ms; --kr-t-tl-close: 0ms; --kr-t-reel-open: 120ms; --kr-t-reel-close: 120ms; --kr-t-theme: 0ms; } }
+
+/* 대응표 — 지금 앱(archive-large.css 계열) 변수 → X5 토큰 (개발 방에서 실제 변수명 확인 뒤 치환)
+   --bg → --kr-bg · --bg-panel → --kr-panel · --bg-chip → --kr-panel2 · --line-strong / --line → --kr-line · 글자 1·2·3 → --kr-ink/--kr-sub/--kr-mute
+   주황 #e0a458 → --kr-acc (단, 선택·체크·비교 배지·주 실행 외의 자리는 --kr-ink 또는 --kr-sub로 바꿈)
+   갈색 면 #211d18 / 금갈색 선 #4a4238 → --kr-panel / --kr-line (중성화)                                            */
