@@ -83,7 +83,7 @@ KR.renderWin = function () {
         '<span class="r">' + langSeg + modeSeg + '<button type="button" class="btn ic" data-act="winprev" data-hold="1" aria-label="앞 사진 (←)"' + (at <= 0 ? ' disabled' : '') + '>' + ic('arrowL') + '</button><button type="button" class="btn ic" data-act="winnext" data-hold="1" aria-label="다음 사진 (→)"' + (at >= list.length - 1 ? ' disabled' : '') + '>' + ic('arrowR') + '</button><button type="button" class="btn" data-act="winclose" aria-label="창 닫기 (Esc)">' + ic('x') + '</button></span></div>' +
       '<div class="pimg" id="pimg"><img src="' + p.src + '" alt="' + esc(KR.title(p) + ' ' + p.tm) + ' 장면" draggable="false"></div>' +
       '<button type="button" class="parr l" data-act="winprev" data-hold="1" aria-label="앞 사진 (←)"' + (at <= 0 ? ' disabled' : '') + '>' + ic('arrowL') + '</button><button type="button" class="parr r" data-act="winnext" data-hold="1" aria-label="다음 사진 (→)"' + (at >= list.length - 1 ? ' disabled' : '') + '>' + ic('arrowR') + '</button>' +
-      '<div class="pfoot"><div class="l1"><span class="lt">' + esc(S.lang === 'en' ? p.w : p.w) + '</span><span class="kt">' + esc(p.wk) + '</span><span class="mute">' + p.y + '</span><span class="cr">' + (dirs ? '감독 ' + people(p.dir) : '') + (dps ? ' · 촬영 ' + people(p.dp) : '') + '</span></div>' +
+      '<div class="pfoot"><div class="l1"><span class="lt">' + esc(p.w) + '</span>' + (S.lang === 'en' ? '' : '<span class="kt">' + esc(p.wk) + '</span>') + '<span class="mute">' + p.y + '</span><span class="cr">' + (dirs ? '감독 ' + people(p.dir) : '') + (dps ? ' · 촬영 ' + people(p.dp) : '') + '</span></div>' +
         '<div class="l3">' + chipsFor(p) + '</div>' +
         '<div class="l3"><button type="button" class="btn" data-act="simfind">' + ic('search') + '비슷한 사진 찾기</button><button type="button" class="btn" data-act="workpage" data-w="' + esc(p.w) + '">이 작품의 다른 장면</button>' +
           '<button type="button" class="btn' + (fv ? ' on' : '') + '" data-act="wfav">' + ic('fav') + (fv ? '즐겨찾기 ✓' : '즐겨찾기') + ' <span class="kbd">F</span></button><button type="button" class="btn' + (ci ? ' on' : '') + '" data-act="wcmp">' + ic('cmp') + (ci ? '비교함 ✓' : '비교함') + ' <span class="kbd">C</span></button>' +
@@ -126,6 +126,12 @@ KR.renderWin = function () {
       '<div class="strips"><div><h6>비슷한 사진 — 다른 작품 먼저 <span class="hn">' + (prevP ? '첫 칸 = 바로 전 사진, 그 뒤 비슷한 9장' : '지금 사진과 비슷한 10장') + '</span><button type="button" data-act="simmore">더보기 (' + sim.length + ') ›</button></h6><div class="wgrid">' + grid(prevP ? [prevP].concat(sim.filter(function (x) { return x.src !== prevP.src && x.src !== p.src; }).slice(0, 9)) : sim.slice(0, 10), false, prevP) + '</div></div>' +
         '<div><h6>이 작품의 다른 장면 — 영화 순서 <span class="hn">' + (s0 + 1) + '–' + (s0 + sameWin.length) + ' / ' + same.length + '</span><button type="button" data-act="workpage" data-w="' + esc(p.w) + '">더보기 (' + same.length + ') ›</button></h6><div class="wgrid" id="samestrip">' + grid(sameWin, true) + '</div></div></div></div>' + right + '</div></div>';
 };
+/* P-06(10-22, 사용자 '3 가'): 상세히 — 창 높이가 모자라면 사진을 줄여 아래 10장 묶음 두 줄이 늘 다 보이게(최소 300px) */
+KR.fitWinImg = function () {
+  var pc = KR.$('.pwin.detail .pcenter'), pi = pc && pc.querySelector('.pimg'); if (!pi) return;
+  pi.style.height = ''; var over = pc.scrollHeight - pc.clientHeight;
+  if (over > 0) pi.style.height = Math.max(300, Math.round(pi.getBoundingClientRect().height - over - 2)) + 'px';
+};
 KR.openWin = function (id, from) {
   var S = KR.S; if (!KR.p(id)) return;
   var t = from || KR.$('.tile[data-pid="' + id + '"] img');
@@ -147,12 +153,14 @@ KR.winEnter = function () {
   if (img.complete && img.naturalWidth) go(); else img.addEventListener('load', go, { once: true });
 };
 KR.closeWin = function () {
-  var S = KR.S, id = S.win, img = KR.$('#pimg img'), box = KR.$('#pwin'), tile = id && KR.$('.tile[data-pid="' + id + '"] img');
+  /* M-10(10-22): 상세히에서도 사진이 원래 칸(릴 위면 가운데 프레임)으로 줄어들며 돌아가게 — .pin 통째 페이드·잘림을 뺌 */
+  var S = KR.S, id = S.win, img = KR.$('#pimg img'), box = KR.$('#pwin'), tile = id && (S.lp ? KR.$('#reel .rcur .rcb img') : KR.$('.tile[data-pid="' + id + '"] img'));
   var done = function () { S.win = null; KR.renderOv(); KR.renderGlob(); var t = KR.$('.tile[data-pid="' + id + '"] .tb'); if (t && !S.lp) try { t.focus({ preventScroll: true }); } catch (e) {} };
   if (!img || KR.reduce() || !box) return done();
   var a = img.getBoundingClientRect(), b = tile ? tile.getBoundingClientRect() : null, vis = b && b.width && b.bottom > 0 && b.top < innerHeight;
   if (vis) img.animate([{ transformOrigin: '0 0', transform: 'none' }, { transformOrigin: '0 0', transform: 'translate(' + (b.left - a.left) + 'px,' + (b.top - a.top) + 'px) scale(' + (b.width / a.width) + ',' + (b.height / a.height) + ')' }], { duration: 180, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'forwards' });
-  KR.$$('.pwin > :not(.pimg), .pwin .head, .pwin .pfoot, .pwin .parr, .pwin .pside, .pwin .rp, .pwin .pleft, .pwin .tonebar, .pwin .vals, .pwin .strips').forEach(function (e) { e.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 120, fill: 'forwards' }); });
+  box.classList.add('closing');
+  KR.$$('.pwin > :not(.pimg):not(.pin), .pwin .pcenter > :not(.pimg), .pwin .head, .pwin .pfoot, .pwin .parr, .pwin .pside, .pwin .rp, .pwin .pleft, .pwin .tonebar, .pwin .vals, .pwin .strips').forEach(function (e) { e.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 120, fill: 'forwards' }); });
   box.animate([{ backgroundColor: getComputedStyle(box).backgroundColor, borderColor: getComputedStyle(box).borderColor }, { backgroundColor: 'transparent', borderColor: 'transparent', boxShadow: 'none' }], { duration: 160, fill: 'forwards' });
   var dim = KR.$('#ov .dim'); if (dim) dim.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, fill: 'forwards' });
   setTimeout(done, 180);
@@ -219,8 +227,11 @@ KR.renderCond = function () {
       return '<div class="tone-r"><button type="button" class="cb' + (r.on ? ' on' : '') + '" data-act="tonetog" data-k="' + key + '" role="checkbox" aria-checked="' + r.on + '" aria-label="' + T[0] + (r.on ? ' 끄기' : ' 켜기') + '"></button><span>' + T[0] + '</span>' + ctl + '<span class="v">' + (!r.on ? '<span class="mute">안 씀</span>' : d.range ? KR.fmt(key, Math.min(r.lo, r.hi)) + '~' + KR.fmt(key, Math.max(r.lo, r.hi)) : KR.fmt(key, r.v)) + '</span><span></span><span></span><span class="w"><span>' + ends[0] + '</span><span>' + ends[1] + '</span></span></div>';
     }).join('') + '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span class="seg" role="group" aria-label="값 고르는 법"><button type="button" class="' + (!d.range ? 'on' : '') + '" data-act="tonerange" data-v="0">값 하나 근처</button><button type="button" class="' + (d.range ? 'on' : '') + '" data-act="tonerange" data-v="1">지정 범위</button></span><span class="mute" style="font-size:11px">분석된 사진만 걸림 · 1단계 ‘색·톤 (사진 화소)’를 돌린 사진은 화소 값으로</span></div>';
   }
-  var left = window.innerWidth <= 900 ? 12 : (S.sideOpen ? 300 : 80) + (S.condFrom === 'band' && k !== 'color' ? Math.max(0, window.innerWidth - (S.sideOpen ? 300 : 80) - 560 - 280) : 0);
-  return '<div class="win cwin" id="cwin" role="dialog" aria-label="' + CNAME[k] + '" style="left:' + left + 'px">' +
+  var left = window.innerWidth <= 900 ? 12 : (S.sideOpen ? 300 : 80) + (S.condFrom === 'band' && k !== 'color' ? Math.max(0, window.innerWidth - (S.sideOpen ? 300 : 80) - 560 - 280) : 0), top = '';
+  /* 제안 M-12(10-22 사용자 반영): 띠에서 연 조건 창은 누른 버튼 바로 아래, 오른쪽 끝을 버튼에 맞춤 */
+  var bt = S.condFrom === 'band' && window.innerWidth > 900 && KR.$('.cbtns [data-act=cond][data-k="' + k + '"]');
+  if (bt) { var br = bt.getBoundingClientRect(); left = Math.max(12, Math.min(window.innerWidth - 560 - 12, Math.round(br.right - 560))); top = ';top:' + Math.round(br.bottom + 8) + 'px'; }
+  return '<div class="win cwin" id="cwin" role="dialog" aria-label="' + CNAME[k] + '" style="left:' + left + 'px' + top + '">' +
     '<div class="wh2">' + CNAME[k] + '<span class="r"><button type="button" class="btn ghost" data-act="cclear">지우기</button><button type="button" class="btn ghost" data-act="cclose">닫기</button><button type="button" class="btn acc" data-act="capply">적용</button></span></div>' +
     '<div class="body">' + body + '</div><div class="foot"><span class="l" aria-live="polite">적용하면 ' + KR.condPreview() + '장</span></div></div>';
 };
@@ -229,8 +240,10 @@ KR.renderCond = function () {
 KR.openFav = function (ids) {
   var S = KR.S; ids = ids.filter(function (x) { return KR.p(x); }); if (!ids.length) return;
   var def = S.favLists.find(function (l) { return l.def; }) || S.favLists[0], already = ids.every(function (x) { return def.ids.indexOf(x) >= 0; });
-  if (!already) def.ids = def.ids.concat(ids.filter(function (x) { return def.ids.indexOf(x) < 0; }));
-  S.fav = { ids: ids, quick: def.id, already: already, others: false, makeDef: false, pick: null, q: '', undone: false };
+  /* G-05: 되돌리기는 이번에 새로 들어간 사진(added)만 뺀다 — 이미 있던 사진은 그대로 */
+  var added = ids.filter(function (x) { return def.ids.indexOf(x) < 0; });
+  if (!already) def.ids = def.ids.concat(added);
+  S.fav = { ids: ids, added: added, quick: def.id, already: already, others: false, makeDef: false, pick: null, q: '', undone: false };
   KR.saveFav(); KR.refreshMarks(); KR.render();
 };
 KR.renderFav = function () {
@@ -238,7 +251,7 @@ KR.renderFav = function () {
   var ids = F.ids, ls = S.favLists, quick = ls.find(function (l) { return l.id === F.quick; }) || ls[0], ps = ids.map(KR.p).filter(Boolean);
   var h = '<div class="dim clear" data-act="favclose"></div><div class="win fwin' + (F.others ? ' wide' : '') + (F._shown ? '' : ' in') + '" id="fwin" role="dialog" aria-label="즐겨찾기에 담기">' +
     '<div class="wh2">' + ic('fav') + (F.undone ? '즐겨찾기 — 되돌렸어요' : '즐겨찾기에 담았어요') + '<span style="display:inline-flex;gap:3px;margin-left:6px">' + ps.slice(0, 4).map(function (p) { return '<img src="' + p.src + '" alt="" style="width:30px;height:20px;object-fit:cover;display:block">'; }).join('') + (ps.length > 4 ? '<span class="mute" style="font-size:11px;margin-left:2px">+' + (ps.length - 4) + '</span>' : '') + '</span><span class="r"><button type="button" class="btn ghost" data-act="favclose" aria-label="닫기">' + ic('x') + '</button></span></div><div class="body">';
-  h += '<div class="okline"><span class="o">' + ic('check') + '</span><span>' + (F.undone ? '‘' + esc(quick.name) + '’에서 다시 뺐어요' : F.already ? '이미 ‘' + esc(quick.name) + '’에 ' + ids.length + '장 담겨 있어요' : '‘' + esc(quick.name) + '’에 ' + ids.length + '장 담았어요') + '</span>' + (F.already ? '' : '<button type="button" class="btn" data-act="favundo">' + (F.undone ? '다시 담기' : '되돌리기') + '</button>') + '</div>';
+  h += '<div class="okline"><span class="o">' + ic('check') + '</span><span>' + (F.undone ? '‘' + esc(quick.name) + '’에서 ' + F.added.length + '장 다시 뺐어요' : F.already ? '이미 ‘' + esc(quick.name) + '’에 ' + ids.length + '장 담겨 있어요' : '‘' + esc(quick.name) + '’에 ' + F.added.length + '장 담았어요' + (F.added.length < ids.length ? ' <span class="mute">· ' + (ids.length - F.added.length) + '장은 이미 있었음</span>' : '')) + '</span>' + (F.already ? '' : '<button type="button" class="btn" data-act="favundo">' + (F.undone ? '다시 담기' : '되돌리기') + '</button>') + '</div>';
   var pk = F.pick && ls.find(function (l) { return l.id === F.pick; });
   h += '<label style="display:flex;align-items:center;gap:8px;cursor:pointer"><span class="cb' + (F.makeDef ? ' on' : '') + '" role="checkbox" tabindex="0" aria-checked="' + F.makeDef + '" data-act="favdef"></span>앞으로 기본 목록으로 설정 <span class="mute" style="font-size:11px">' + (F.makeDef && pk ? '다음부터 ‘' + esc(pk.name) + '’에 바로 담겨요' : pk ? '→ ‘' + esc(pk.name) + '’' : F.makeDef ? '다른 목록을 고르면 그 목록이 기본이 돼요' : '') + '</span></label>';
   h += '<button type="button" class="lnk" data-act="favothers" aria-expanded="' + F.others + '" style="text-align:left">' + (F.others ? '▾' : '▸') + ' 다른 목록에도 담기 <span class="mute">— 최근 쓴 목록 먼저 · 표지 카드</span></button>';
@@ -250,7 +263,7 @@ KR.renderFav = function () {
     }).join('') + '<button type="button" class="lcard" data-act="favnew" style="align-items:center;justify-content:center;min-height:110px;border-style:dashed;color:var(--kr-sub)">+ 새 목록</button></div>';
     h += '<div style="display:flex;gap:6px"><label class="sr" for="favq">목록 찾기</label><input id="favq" class="lfind" type="search" placeholder="목록 찾기 · 없으면 새 이름" value="' + esc(F.q) + '" data-input="favq"><button type="button" class="btn" data-act="favq">담기</button></div>';
   }
-  h += '</div><div class="foot"><span class="l">F2 — 담는 즉시 저장 · 되돌리기 가능</span><button type="button" class="btn fill" data-act="favclose">완료</button></div></div>';
+  h += '</div><div class="foot"><span class="l">F2 — 담는 즉시 저장 · 되돌리기 가능</span><button type="button" class="lnk" data-act="go" data-r="fav" style="margin-left:auto;margin-right:12px">즐겨찾기 목록 ›</button><button type="button" class="btn fill" data-act="favclose">완료</button></div></div>';
   return h;
 };
 
@@ -260,9 +273,9 @@ KR.renderKeys = function () {
   var k = function (s) { return '<span class="kbd">' + s + '</span>'; };
   var rows = [['선택', k('Ctrl') + ' +클릭 · ' + k('Shift') + ' +클릭 · ' + k('X') + ' 체크'], ['즐겨찾기 담기', k('F')], ['비교함 담기', k('C')], ['나란히 보기', k('V')], ['선택 해제', k('Esc')],
     ['필름 릴', '1초 누르기 · ' + k('R') + ' · ' + k('←') + k('→') + ' 비슷한 · ' + k('↑') + k('↓') + ' 같은 작품 · ' + k('Home') + ' 처음'], ['사진 창', k('Enter') + ' 열기 · ' + k('←') + k('→') + ' 넘기기 · ' + k('Esc') + ' 닫기'],
-    ['검색 칸', k('/')], ['조건 칸 접기', k('[')], ['비교함 순서', '나란히 보기에서 선택 뒤 ' + k('[') + ' ' + k(']') + ' 한 칸'], ['인스펙터', k('I') + ' (즐겨찾기·비교함)'], ['비교 띠 넘기기', '띠에 포커스 뒤 ' + k('←') + k('→')], ['이 도움말', k('?')]];
+    ['검색 칸', k('/')], ['조건 칸 접기', k('[')], ['비교함 순서', '나란히 보기에서만 · 선택 뒤 ' + k('Shift') + ' + ' + k('[') + ' ' + k(']') + ' 한 칸'], ['인스펙터', k('I') + ' (즐겨찾기·비교함)'], ['비교 띠 넘기기', '띠에 포커스 뒤 ' + k('←') + k('→')], ['이 도움말', k('?')]];
   return '<div class="dim" data-act="keys"></div><div class="win" role="dialog" aria-label="단축키" style="left:50%;top:50%;width:460px;transform:translate(-50%,-50%);animation:winInC 160ms var(--kr-ease-out) both"><div class="wh2">단축키<span class="r"><button type="button" class="btn ghost" data-act="keys">' + ic('x') + '닫기</button></span></div><div class="body" style="gap:0">' +
-    rows.map(function (r) { return '<div style="display:flex;justify-content:space-between;gap:16px;padding:7px 0;border-bottom:1px solid var(--kr-line)"><span>' + r[0] + '</span><span style="text-align:right">' + r[1] + '</span></div>'; }).join('') + '<p class="mute" style="margin:10px 0 0;font-size:11px">R·[·]·I는 X5에서 더한 키(누르기·끌기 대신 쓰는 대체 입력)</p></div></div>';
+    rows.map(function (r) { return '<div style="display:flex;justify-content:space-between;gap:16px;padding:7px 0;border-bottom:1px solid var(--kr-line)"><span>' + r[0] + '</span><span style="text-align:right">' + r[1] + '</span></div>'; }).join('') + '<p class="mute" style="margin:10px 0 0;font-size:11px">R·[·Shift+[ ]·I는 X5에서 더한 키(누르기·끌기 대신 쓰는 대체 입력)</p></div></div>';
 };
 
 /* ── 내보내기 창 ── */

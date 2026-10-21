@@ -17,6 +17,8 @@ KR.renderTop = function () {
       '<button type="button" class="wtab' + (r === 'ai' ? ' on' : '') + '" data-act="go" data-r="ai">AI 분석 실행</button>' +
     '</nav>' +
     '<div class="rt">' +
+      /* M-04(10-22, 사용자 '1 가'): 즐겨찾기 목록 페이지로 가는 글자 버튼 */
+      '<button type="button" class="tb-btn' + (r === 'fav' ? ' on' : '') + '" data-act="go" data-r="fav" aria-current="' + (r === 'fav' ? 'page' : 'false') + '">' + ic('fav') + '<span class="lbl">즐겨찾기</span></button>' +
       '<button type="button" class="tb-btn' + (S.imgFind || S.scope === 'img' ? ' on' : '') + '" data-act="imgfind">' + ic('img') + '<span class="lbl">사진으로 찾기</span></button>' +
       '<span class="seg" role="group" aria-label="표시 언어"><button type="button" class="' + (S.lang !== 'en' ? 'on' : '') + '" data-act="lang" data-v="ko" aria-pressed="' + (S.lang !== 'en') + '">한</button><button type="button" class="' + (S.lang === 'en' ? 'on' : '') + '" data-act="lang" data-v="en" aria-pressed="' + (S.lang === 'en') + '">EN</button></span>' +
       '<button type="button" class="tb-btn ic" data-act="theme" aria-label="밝기: ' + thName + ' (눌러서 ' + next + ')" title="밝기: ' + thName + ' → ' + next + '"><span class="thi">' + ic(th) + '</span></button>' +
@@ -98,19 +100,32 @@ KR.renderBand = function () {
       if (vs.length) groups.push({ name: KR.nameOf(f), items: vs.map(function (v) { return chip(f, v, m[v]); }) });
     });
     var more = Math.max(0, total2 - shown);
+    /* M-01·P-12(10-22): 1줄일 때 '+n 더'는 칩 영역 밖 오른쪽에 고정 — 폭이 모자라 잘린 칩은 KR.fitBand가 빼고 n에 더함 */
     h += '<div class="band-b"><div class="band-g' + (S.bandTwo ? ' two' : '') + '">' + groups.map(function (g, i) { return (i ? '<span class="sep" aria-hidden="true"></span>' : '') + '<span class="lab">' + esc(g.name) + '</span>' + g.items.join(''); }).join('') +
-      (S.bandTwo ? '<button type="button" class="more" data-act="band2" aria-expanded="true">접기 ⌃</button>' : (more ? '<button type="button" class="more" data-act="band2" aria-expanded="false">+' + more + ' 더 ' + ic('down') + '</button>' : '')) + '</div></div>';
+      (S.bandTwo ? '<button type="button" class="more" data-act="band2" aria-expanded="true">접기 ⌃</button></div>' : '</div><button type="button" class="more" data-act="band2" aria-expanded="false" data-base="' + more + '"' + (more ? '' : ' hidden') + '>+' + more + ' 더 ' + ic('down') + '</button>') + '</div>';
   } else if (S.bandMode === 'pin') {
     var gh = S.pins.map(function (f) { var m = KR.countsIn(KR.result(f), f); return '<span class="lab">' + esc(KR.nameOf(f)) + '<button type="button" data-act="pin" data-f="' + f + '" aria-label="' + esc(KR.nameOf(f)) + ' 고정 풀기" title="고정 풀기">×</button></span>' + KR.valuesOf(f).slice(0, S.bandTwo ? 12 : 5).map(function (v) { return chip(f, v, m[v]); }).join(''); });
     var add = KR.FIELDS.filter(function (x) { return S.pins.indexOf(x[0]) < 0; });
     h += '<div class="band-b"><div class="band-g' + (S.bandTwo ? ' two' : '') + '">' + gh.join('<span class="sep" aria-hidden="true"></span>') +
-      (S.bandTwo ? '<span class="sep"></span><span class="lab">띠에 올릴 조건</span>' + add.map(function (x) { return '<button type="button" class="chip dash" data-act="pin" data-f="' + x[0] + '">+ ' + esc(x[1]) + '</button>'; }).join('') + '<button type="button" class="more" data-act="band2">접기 ⌃</button>' : '<button type="button" class="more" data-act="band2">+ 조건 ' + ic('down') + '</button>') + '</div>' +
+      (S.bandTwo ? '<span class="sep"></span><span class="lab">띠에 올릴 조건</span>' + add.map(function (x) { return '<button type="button" class="chip dash" data-act="pin" data-f="' + x[0] + '">+ ' + esc(x[1]) + '</button>'; }).join('') + '<button type="button" class="more" data-act="band2">접기 ⌃</button></div>' : '</div><button type="button" class="more" data-act="band2" data-pin="1">+ 조건 ' + ic('down') + '</button>') +
       (S.filters.length || S.color || Object.keys(S.tone).length ? '' : '') + '</div>';
   } else {
     var items = S.recent.map(function (r) { var m = KR.countsIn(KR.result(r.f), r.f); return chip(r.f, r.v, m[r.v]).replace('>' + esc(r.v) + '<', '>' + esc(KR.nameOf(r.f)) + ' · ' + esc(r.v) + '<'); });
     h += '<div class="band-b">' + (items.length ? '<div class="band-g' + (S.bandTwo ? ' two' : '') + '"><span class="lab">최근에 고른 조건</span>' + items.join('') + '</div>' : '<div class="band-note">아직 쓴 조건이 없습니다.</div>') + '</div>';
   }
   return h;
+};
+
+/* 1줄 띠: 칩 영역 오른쪽 끝을 넘는 칩은 숨기고(뒤에 남는 이름표·구분선도) '+n 더'에 더함 — M-01·P-12 */
+KR.fitBand = function () {
+  var g = KR.$('#band .band-b > .band-g:not(.two)'); if (!g) return;
+  var kids = [].slice.call(g.children); kids.forEach(function (el) { el.classList.remove('cut'); });
+  var right = g.getBoundingClientRect().right, cut = 0;
+  kids.forEach(function (el) { if (el.getBoundingClientRect().right > right + 0.5) { el.classList.add('cut'); if (el.classList.contains('chip')) cut++; } });
+  for (var i = kids.length - 1; i >= 0; i--) { var el = kids[i]; if (el.classList.contains('cut')) continue; if (el.classList.contains('sep') || el.classList.contains('lab')) el.classList.add('cut'); else break; }
+  var m = g.parentNode.querySelector(':scope > .more'); if (!m) return;
+  if (m.getAttribute('data-pin')) { m.innerHTML = (cut ? '+' + cut + ' 더 ' : '+ 조건 ') + KR.ic('down'); return; }
+  var n = Number(m.getAttribute('data-base') || 0) + cut; m.hidden = !n; m.innerHTML = '+' + n + ' 더 ' + KR.ic('down');
 };
 
 /* ── 개수 줄 44px ── */
@@ -134,7 +149,8 @@ KR.renderCount = function (res) {
   h += '<span class="big num">' + shown.toLocaleString() + '</span>';
   if (S.scope === 'img') h += '<span class="u">장 · ' + (S.imgSort === 'color' ? '색감이 비슷한 순' : '사진과 가까운 순') + (res.length > 60 && !S.imgMore ? ' · 처음 60장 + 더 보기' : '') + '</span>';
   else h += '<span class="u">장 · 작품 ' + nW + '개</span>';
-  if (S.scope === 'img' && S.img) h += '<span class="basepic"><img src="' + S.img.src + '" alt=""><span>기준 사진 · ' + esc(S.img.name) + (S.img.ref ? '' : ' · 올린 파일은 보관함에 넣지 않음') + '</span><button type="button" class="lnk" data-act="imgclear">× 지우기</button></span>';
+  /* 제안 P-07(10-22 사용자 반영): 개수 줄 한 줄 — 사진 이름은 안 보이게, 작은 썸네일에 마우스를 가까이 대면(또는 포커스) 크게 보기 */
+  if (S.scope === 'img' && S.img) h += '<span class="basepic"><span class="bthumb" tabindex="0" role="img" aria-label="기준 사진 — 마우스를 올리면 크게"><img src="' + S.img.src + '" alt=""><span class="bprev" aria-hidden="true"><img src="' + (S.img.big || S.img.src) + '" alt=""></span></span><span title="' + (S.img.ref ? '보관함 사진에서 찾기' : '올린 파일은 보관함에 넣지 않음') + '">기준 사진</span><button type="button" class="lnk" data-act="imgclear">× 지우기</button></span>';
   var act = KR.activeChips();
   if (act.length) h += '<span class="act-chips">' + act.map(function (a) { return '<button type="button" class="chip on" data-act="dropf" data-i="' + a.i + '" aria-label="' + esc(a.label) + ' 조건 빼기">' + esc(a.label) + ' ×</button>'; }).join('') + '<button type="button" class="lnk" data-act="clearall">모두 지우기</button></span>';
   var heard = KR.heard(); if (heard.length) h += '<span class="heard" title="용어집으로 알아들은 말">읽은 말 <b>' + heard.map(esc).join(' · ') + '</b></span>';
@@ -199,7 +215,7 @@ KR.markTile = function (el, p, opt) {
   el.classList.toggle('showcap', opt.score != null);
   el.classList.toggle('contain', S.layout === 'fixed');
 };
-KR.refreshMarks = function () { KR.$$('.tile[data-pid]').forEach(function (el) { var p = KR.p(el.getAttribute('data-pid')); if (!p) return; if (el.querySelector('.cmpb')) KR.markTile(el, p); else { var on = S.sel.indexOf(p.id) >= 0 || (el.closest('#cg') && S.cmpSel.indexOf(p.id) >= 0); el.classList.toggle('sel', !!on); var ck = el.querySelector('.ck'); if (ck) ck.classList.toggle('on', !!on); } }); };
+KR.refreshMarks = function () { KR.$$('.tile[data-pid]').forEach(function (el) { var p = KR.p(el.getAttribute('data-pid')); if (!p) return; if (el.querySelector('.cmpb')) KR.markTile(el, p); else { var on = el.closest('#cg') ? S.cmpSel.indexOf(p.id) >= 0 : S.sel.indexOf(p.id) >= 0;   /* G-04: 나란히 보기 칸은 비교 선택(cmpSel)만 */ el.classList.toggle('sel', !!on); var ck = el.querySelector('.ck'); if (ck) ck.classList.toggle('on', !!on); } }); };
 
 function justRows(list, n) {
   /* 정본 규칙(justified.mjs와 같음): 한 줄은 고른 장수에서 닫거나 비율 합이 n×1.75에 닿으면 닫음. 좁은 사진 줄은 1.6배 높이까지 */
@@ -247,7 +263,8 @@ KR.renderGrid = function (host, res) {
         /* 작품마다 두 줄, 각 줄을 따로 좌우로 끌어서 넘김(정본) */
         var r1 = [], r2 = [], w1 = 0, w2 = 0; ps.forEach(function (p) { if (w1 <= w2 * 0.82) { r1.push(p); w1 += p.ar; } else { r2.push(p); w2 += p.ar; } });
         var hgt = S.perRow <= 3 ? 200 : S.perRow >= 6 ? 120 : 160;
-        [[r1, hgt], [r2, Math.round(hgt * 0.82)]].forEach(function (rr, ri) {
+        /* P-01(10-22): 고정 칸은 두 줄 모두 같은 칸 크기(줄 맞춤은 정본대로 둘째 줄 0.82) */
+        [[r1, hgt], [r2, S.layout === 'fixed' ? hgt : Math.round(hgt * 0.82)]].forEach(function (rr, ri) {
           if (!rr[0].length) return; var st = document.createElement('div'); st.className = 'strip'; st.style.cssText = 'gap:4px;margin-top:' + (ri ? 4 : 0) + 'px'; st.setAttribute('data-strip', '1');
           rr[0].forEach(function (p) { var t = KR.tileEl(p, { score: scores ? scores[p.id] : null, k: '~s' }); t.style.cssText = 'height:' + rr[1] + 'px;width:' + Math.round((S.layout === 'fixed' ? 16 / 9 : p.ar) * rr[1]) + 'px'; st.appendChild(t); });
           sec.appendChild(st);
@@ -271,7 +288,7 @@ KR.renderSearch = function (opt) {
   var cp = KR.$('#cp'); cp.hidden = !S.sideOpen && !opt.keepCp;
   KR.keepFocus(cp, function () { cp.innerHTML = KR.renderCp(); });
   KR.$('#edge').hidden = S.sideOpen;
-  KR.$('#band').innerHTML = KR.renderBand();
+  KR.$('#band').innerHTML = KR.renderBand(); KR.fitBand();
   var res = KR.result(); KR._imgTotal = res.length; KR.lastRes = res;
   KR.$('#count').innerHTML = KR.renderCount(res);
   var sh = '';
@@ -305,6 +322,16 @@ KR.watchCount = function () {
 
 /* ── 전역 떠 있는 것: 검색 칸 · 선택 토글 · 숫자 배지 · 조건 손잡이 위치 ── */
 KR.searchLeft = function () { var cw = S.route.name === 'search' && S.sideOpen && window.innerWidth > 900 ? 220 : 0; return cw + (window.innerWidth - cw) / 2 - (window.innerWidth > 1100 ? 150 : 0); };
+/* M-07·P-04(10-22): 검색 칸은 타임라인 왼쪽 끝 − 12px 안에 둔다. 모자라면 왼쪽으로 비키고, 그래도 모자라면 폭을 340까지 줄임 */
+KR.searchPlace = function () {
+  var vw = window.innerWidth, cx = KR.searchLeft(); if (vw <= 900) return { left: cx, w: 0 };
+  var cw = S.route.name === 'search' && S.sideOpen ? 220 : 0, W = Math.min(560, vw - 32), tl = KR.$('#tl');
+  var tlL = tl ? (KR._tlLeft != null ? KR._tlLeft : tl.getBoundingClientRect().left) : vw - 20, maxR = tlL - 12, minL = cw + 12;
+  if (cx + W / 2 > maxR) cx = maxR - W / 2;
+  if (cx - W / 2 < minL) { W = Math.max(340, Math.min(W, maxR - minL)); cx = minL + W / 2; }
+  return { left: Math.round(cx), w: W < 560 ? Math.round(W) : 0 };
+};
+KR.placeSearch = function () { var gs = KR.$('#gsearch'), bx = gs && gs.firstElementChild; if (!bx) return; var pl = KR.searchPlace(); bx.style.left = pl.left + 'px'; bx.style.width = pl.w ? pl.w + 'px' : ''; };
 KR.renderSearchBox = function () {
   if (S.imgFind) return '<div class="imgfind" id="imgfind" role="region" aria-label="사진으로 찾기" style="left:' + KR.searchLeft() + 'px"><div class="h">' + ic('img') + '사진으로 찾기<span class="r"><button type="button" class="lnk" data-act="imgfindoff">말로 찾기로</button></span></div>' +
     '<div class="b"><div class="drop" id="drop">파일을 끌어다 놓기 · 붙여넣기 (Ctrl+V) · <label class="btn" for="imgfile">파일 고르기</label><input id="imgfile" type="file" accept="image/*" class="sr" data-input="imgfile"></div><div class="note">보관함 사진에서 시작하려면 사진 창의 "비슷한 사진 찾기". 올린 사진은 보관함에 넣지 않아요.</div></div></div>';
@@ -318,7 +345,7 @@ KR.renderGlob = function () {
   /* 검색 칸: 종류(말/사진/없음)가 바뀔 때만 새로 그림 — 입력 중에는 위치·면 색만 */
   var gs = KR.$('#gsearch'), kind = !onSearch ? 'none' : S.imgFind ? 'img' : 'q' + (S.q ? '1' : '0');
   if (gs.getAttribute('data-k') !== kind) { KR.keepFocus(gs, function () { gs.innerHTML = onSearch ? KR.renderSearchBox() : ''; }); gs.setAttribute('data-k', kind); }
-  else { var bx = gs.firstElementChild; if (bx) bx.style.left = KR.searchLeft() + 'px'; }
+  KR.placeSearch();
   /* 떠다니는 선택 토글 — 개수 줄이 가려지면 */
   var showTog = onSearch && S.sel.length > 0 && (KR._countOff || KR._gd) && (!S.miniHide || KR._gd);
   if (showTog) { var ss = KR.selState(); var cx = (S.sideOpen && window.innerWidth > 900 ? 220 : 0) + (window.innerWidth - (S.sideOpen && window.innerWidth > 900 ? 220 : 0)) / 2;

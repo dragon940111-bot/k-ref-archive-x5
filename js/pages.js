@@ -79,7 +79,11 @@ KR.fillWork = function () {
       d.appendChild(miniRows(sc.list, '~w')); host.appendChild(d);
     });
     var n = document.createElement('p'); n.className = 'pnote'; n.style.padding = '10px 28px'; n.textContent = '장면 묶음은 15분 넘게 떨어지면 나눔 · 묶음 머리줄을 누르면 그 구간만 격자로'; host.appendChild(n);
-  } else if (sub === 'all') { var g = document.createElement('div'); g.className = 'pgrid'; g.appendChild(miniRows(list.slice().sort(function (a, b) { return a.sec - b.sec; }), '~w')); host.appendChild(g); }
+  } else if (sub === 'all') {
+    /* M-02(10-22): 장면 묶음 머리줄의 시간 버튼 → 그 구간만 + 구간 해제 칩 */
+    var rg = KR._sceneRange, src = rg ? list.filter(function (p) { return p.sec >= rg[0] && p.sec <= rg[1]; }) : list;
+    if (rg) { var bar = document.createElement('div'); bar.className = 'rangebar'; bar.innerHTML = '<span>' + KR.tmShort(rg[0]) + ' – ' + KR.tmShort(rg[1]) + ' 구간만 · ' + src.length + '장</span><button type="button" class="chip on" data-act="sceneoff" aria-label="구간 거르기 풀기">구간 ×</button>'; host.appendChild(bar); }
+    var g = document.createElement('div'); g.className = 'pgrid'; g.appendChild(miniRows(src.slice().sort(function (a, b) { return a.sec - b.sec; }), '~w')); host.appendChild(g); }
   else if (sub === 'credit') host.innerHTML = '<div class="dgrid"><div class="dcard"><h5>크레딧</h5><div class="kv"><span class="k">감독</span><span class="v">' + info.dir.map(function (n) { return '<button type="button" class="lnk" data-act="person" data-n="' + esc(n) + '">' + esc(n) + '</button>'; }).join(', ') + '</span><span class="k">촬영</span><span class="v">' + info.dp.map(function (n) { return '<button type="button" class="lnk" data-act="person" data-n="' + esc(n) + '">' + esc(n) + '</button>'; }).join(', ') + '</span><span class="k">미술 · 편집</span><span class="v mute">[시안 자료에 없음]</span></div></div><div class="dcard"><h5>장비</h5><div class="kv"><span class="k">카메라</span><span class="v">' + esc(all[0].cam) + '</span><span class="k">렌즈</span><span class="v">' + esc(all[0].lens) + '</span><span class="k">포맷</span><span class="v">' + esc(all[0].fmt) + '</span></div></div></div>';
   else if (sub === 'cast') { var acts = {}; all.forEach(function (p) { p.act.forEach(function (a) { acts[a] = (acts[a] || 0) + 1; }); }); host.innerHTML = '<div class="dgrid"><div class="dcard"><h5>출연 <span>나온 장면 수 (결정 B: 배우도 같은 틀)</span></h5>' + Object.keys(acts).sort(function (a, b) { return acts[b] - acts[a]; }).map(function (a) { return '<button type="button" class="dbar" data-act="person" data-n="' + esc(a) + '"><span>' + esc(a) + '</span><span class="trk"><i style="width:' + KR.pct(acts[a], all.length) + '%"></i></span><span class="v">' + acts[a] + '</span></button>'; }).join('') + '</div></div>'; }
   else if (sub === 'like') {
@@ -110,6 +114,7 @@ KR.renderPerson = function () {
   h += '<div id="personbody"></div></div></div>';
   return h;
 };
+KR.UNCOLLECTED = { 'Sean Baker': [{ w: 'Red Rocket', k: '레드 로켓', y: 2021, role: '감독' }] };
 KR.fillPerson = function () {
   var host = KR.$('#personbody'); if (!host) return; var n = S.route.n, list = KR.personPhotos(n), works = KR.uniq(list.map(function (p) { return p.w; })), tab = S.personTab;
   host.textContent = ''; host.className = S.line ? 'line-on' : '';
@@ -118,6 +123,12 @@ KR.fillPerson = function () {
     row.innerHTML = '<div class="meta"><span class="y">' + i.y + '</span><button type="button" class="t" data-act="workpage" data-w="' + esc(w) + '">' + esc(KR.workTitle(w)) + '</button><span class="e">' + esc(i.w) + ' · ' + workRoles(n, w).join(' · ') + '</span><span class="rr">' + ps.length + '장' + (i.dp.length && i.dp.indexOf(n) < 0 ? ' · 촬영 ' + esc(i.dp.join(', ')) : '') + '</span><div class="chips2">' + KR.feat(ps).slice(0, 3).map(function (f) { return featChip(f, 'w:' + w); }).join('') + '</div></div><div class="pst"></div>';
     var st = row.querySelector('.pst'); uniqSrc(ps).slice(0, 4).forEach(function (p) { var t = KR.tileEl(p, { k: '~p' }); t.style.cssText = 'height:120px;width:' + Math.round(p.ar * 120) + 'px'; st.appendChild(t); });
     var a = document.createElement('button'); a.type = 'button'; a.className = 'all'; a.setAttribute('data-act', 'workpage'); a.setAttribute('data-w', w); a.textContent = '전체 ' + ps.length + ' ›'; st.appendChild(a);
+    host.appendChild(row);
+  });
+  /* M-11(10-22): 크레딧에는 있지만 아직 모으지 않은 작품 — 변경표 Person "레드 로켓 사진은 자료 없음 표시". 시안 자료 */
+  if (tab === 'works') (KR.UNCOLLECTED[n] || []).forEach(function (x) {
+    var row = document.createElement('div'); row.className = 'prow';
+    row.innerHTML = '<div class="meta"><span class="y">' + x.y + '</span><span class="t">' + esc(S.lang === 'en' ? x.w : x.k) + '</span><span class="e">' + esc(x.w) + ' · ' + esc(x.role) + '</span><span class="rr">0장</span></div><div class="pst"><div class="ph2" style="height:120px;width:213px">아직 모으지 않은 작품<br>자료 없음</div></div>';
     host.appendChild(row);
   });
   else if (tab === 'all') { var g = document.createElement('div'); g.className = 'pgrid'; g.appendChild(miniRows(list, '~p')); host.appendChild(g); }

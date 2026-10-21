@@ -35,8 +35,8 @@ KR.renderReel = function () {
     '<div class="band-v-r' + (lp.axis === 'h' ? ' rdim' : '') + '" id="bandv" aria-label="같은 작품 사진"><div class="rtrack v" id="trv">' + vf + '</div></div>' +
     '<span class="rax" style="left:20px;top:calc(50% - 58px - 22px)">← 비슷한 사진 <em>' + (c.fh - c.hMin + 1) + ' / ' + (c.hMax - c.hMin + 1) + '</em></span>' +
     '<span class="rax" style="right:20px;top:calc(50% - 58px - 22px)">비슷한 사진 →</span>' +
-    '<span class="rax" style="left:50%;transform:translateX(-50%);top:58px">↑ 같은 작품 · 앞 장면 <em>' + (c.fv - c.vMin + 1) + ' / ' + (c.vMax - c.vMin + 1) + '</em></span>' +
-    '<span class="rax" style="left:50%;transform:translateX(-50%);bottom:70px">같은 작품 · 뒤 장면 ↓</span>' +
+    '<span class="rax" style="left:calc(50% + 100px);top:58px">↑ 같은 작품 · 앞 장면 <em>' + (c.fv - c.vMin + 1) + ' / ' + (c.vMax - c.vMin + 1) + '</em></span>' +
+    '<span class="rax" style="left:calc(50% + 100px);bottom:70px">같은 작품 · 뒤 장면 ↓</span>' +
     '<div class="rcur" style="width:' + CW + 'px"><button type="button" class="rcb" data-act="lpwin" style="width:' + CW + 'px;height:' + ch + 'px" aria-label="' + esc(KR.title(f) + ' ' + f.tm) + ' 사진 창으로 열기 (Enter)"><img src="' + f.src + '" alt="" draggable="false"><i class="cn a"></i><i class="cn b"></i><i class="cn c"></i><i class="cn d"></i><span class="gtc">' + f.tm + '</span></button>' +
       '<div class="rlab"><b>' + esc(KR.title(f)) + '</b><span>(' + f.y + ')</span><span class="tc">' + f.tm + '</span><span>' + (f.dir.length ? '감독 ' + esc(f.dir.join(', ')) : '') + '</span><span class="pal5">' + (f.pal || []).slice(0, 5).map(function (x) { return '<i style="background:' + x + '"></i>'; }).join('') + '</span><span class="fn">FRAME ' + fn + ' / ' + same.length + ' · ' + esc(f.asp || '') + '</span></div></div>' +
     (away ? '<button type="button" class="rfirst" data-act="lphome" aria-label="처음 사진으로 (Home)"><img src="' + c.base.src + '" alt="" draggable="false"><span>처음 사진으로</span></button>' : '') +
@@ -52,15 +52,15 @@ KR.lpPlace = function (track, axis, pos, live, vel) {
   if (live) { KR.lpGateOff(); return; }
   if (KR.reduce() || Math.abs(from - px) < 0.5) { KR.lpGateSoon(); return; }
   KR.lpGateOff();
-  var f = KR.springFrames(from, px, vel || 0);
+  var f = KR.springFrames(from, px, vel || 0, null, null, { x: 0.5, v: 8 });
   track._a = track.animate(f.vals.map(function (v) { return { transform: prop + '(' + v.toFixed(2) + 'px)' }; }), { duration: f.ms, easing: 'linear' });
   track._a.onfinish = function () { track._a = null; KR.lpGateSoon(); };
 };
 /* 멈춘 동안: 가운데 사진·이름 줄과 겹치는 띠 칸은 숨김(페이드), 움직이기 시작하면 다시 보임 */
 KR.lpMoving = function () { var th = KR.$('#trh'), tv = KR.$('#trv'), g = KR._lpDrag; return !!((th && th._a) || (tv && tv._a) || (g && g.live)); };
-KR.lpGateOff = function () { cancelAnimationFrame(KR._lpSoonRaf); cancelAnimationFrame(KR._lpGateRaf); KR._lpGateRaf = requestAnimationFrame(function () { KR.$$('#reel .rf.gate').forEach(function (b) { b.classList.remove('gate'); }); }); };
+KR.lpGateOff = function () { cancelAnimationFrame(KR._lpSoonRaf); cancelAnimationFrame(KR._lpGateRaf); var rr = KR.$('#reel'); if (rr) rr.classList.remove('still'); KR._lpGateRaf = requestAnimationFrame(function () { KR.$$('#reel .rf.gate').forEach(function (b) { b.classList.remove('gate'); }); }); };
 KR.lpGateOn = function () {
-  var cur = KR.$('#reel .rcur'); if (!cur) return; var a = cur.getBoundingClientRect(), pad = 6;
+  var cur = KR.$('#reel .rcur'); if (!cur) return; var a = cur.getBoundingClientRect(), pad = 6; KR.$('#reel').classList.add('still');   /* M-08: 멈추면 가운데 사진이 띠(퍼포레이션) 위로 */
   KR.$$('#reel .rf').forEach(function (b) { var r = b.getBoundingClientRect(); var hit = r.right > a.left - pad && r.left < a.right + pad && r.bottom > a.top - pad && r.top < a.bottom + pad; b.classList.toggle('gate', hit); });
 };
 KR.lpGateSoon = function () { cancelAnimationFrame(KR._lpSoonRaf); KR._lpSoonRaf = requestAnimationFrame(function () { if (!KR.lpMoving()) KR.lpGateOn(); }); };

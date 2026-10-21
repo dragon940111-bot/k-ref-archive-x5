@@ -89,9 +89,10 @@ KR.flip = function (els, key, before, opt) {
 };
 
 /* ── 스프링(JS) — stiffness 420 · damping 34 · mass 1, 튕김 1회 약 320ms(움직임_명세 1). 키프레임으로 뽑아 WAAPI로 ── */
-KR.springFrames = function (from, to, v0, k, c) {
-  k = k || 420; c = c || 34; var x = from - to, v = v0 || 0, dt = 1 / 120, out = [], t = 0;
-  for (var i = 0; i < 240; i++) { out.push(to + x); var a = -k * x - c * v; v += a * dt; x += v * dt; t += dt; if (Math.abs(x) < 0.05 && Math.abs(v) < 0.05 && i > 10) break; }
+KR.springFrames = function (from, to, v0, k, c, eps) {
+  /* eps: 멈춤 판정(기본 0.05). 필름 릴처럼 px 단위면 {x:.5, v:8} — 0.5px 안에서 끝없이 꼬리가 남아 띠 칸 숨김이 약 1초 늦던 것(M-08, 10-22) */
+  k = k || 420; c = c || 34; var x = from - to, v = v0 || 0, dt = 1 / 120, out = [], t = 0, ex = eps ? eps.x : 0.05, ev = eps ? eps.v : 0.05;
+  for (var i = 0; i < 240; i++) { out.push(to + x); var a = -k * x - c * v; v += a * dt; x += v * dt; t += dt; if (Math.abs(x) < ex && Math.abs(v) < ev && i > 10) break; }
   out.push(to); return { vals: out, ms: Math.round(out.length * dt * 1000) };
 };
 KR.springScale = function (el, from, k, c) {
@@ -127,7 +128,7 @@ KR.S = {
   sideOpen: KR.load('side', '1') === '1', bandOpen: KR.load('band', '1') === '1', bandTwo: KR.load('band2', '0') === '1', bandMode: KR.load('bandmode', 'auto'), pins: ['frame', 'tod', 'light'],
   recent: [{ f: 'tod', v: '밤' }, { f: 'light', v: '역광' }, { f: 'frame', v: '클로즈업' }], open: KR.load('open', 'frame,tod').split(',').filter(Boolean), fq: '', worksOpen: true, lookOpen: true, aiOpen: true,
   sel: initSel, cmp: [], cmpSel: [], cmpOff: [], magnet: KR.load('magnet', '1') === '1', seen: [], dockOpen: KR.load('dock', '1') === '1', dockLevel: 1, miniHide: KR.load('minihide', '0') === '1',
-  favLists: [], keysOpen: false, cond: null, draft: null, fav: null, exp: null, win: null, winMode: KR.load('winmode', 'simple'), winLeft: false, winRight: true, lp: null, cmpOpen: false, inspOpen: KR.load('insp', '1') === '1', inspFilter: null, hover: null,
+  favLists: [], keysOpen: false, cond: null, draft: null, fav: null, exp: null, win: null, winMode: KR.load('winmode', 'simple'), winLeft: KR.load('winleft', '0') === '1', winRight: KR.load('winright', '1') === '1', lp: null, cmpOpen: false, inspOpen: KR.load('insp', '1') === '1', inspFilter: null, hover: null,
   sortOpen: false, imgFind: false, toast: '', sian: false, workTab: 'all', workSub: 'scene', personTab: 'works', aiState: 'idle', aiStage: { 1: true, 2: false, 3: false }, aiScope: 'all', aiDev: 'gpu', favList: null, favInList: null, cmpNote: '', cmpConfirm: false, seenConfirm: false
 };
 /* D1: 섞기는 세션마다 씨앗 하나 */

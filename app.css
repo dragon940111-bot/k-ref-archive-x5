@@ -139,7 +139,12 @@ html.rm { --kr-t-hover: 0ms; --kr-t-panel: 0ms; --kr-t-tl-open: 0ms; --kr-t-tl-c
 .cbtns button { color: var(--kr-sub); white-space: nowrap; display: inline-flex; align-items: center; gap: 5px; }
 .cbtns button:hover, .cbtns button.set { color: var(--kr-ink); }
 .cbtns button.set::after { content: ""; width: 4px; height: 4px; border-radius: 50%; background: var(--kr-acc); }
-.band-b { overflow: hidden; }
+.band-b { overflow: hidden; display: flex; align-items: center; }
+.band-b > .band-g { flex: 1; min-width: 0; }
+.band-b > .more { color: var(--kr-mute); font-size: 12px; white-space: nowrap; flex: none; padding: 0 4px 0 10px; margin-top: 8px; display: inline-flex; align-items: center; gap: 3px; }
+.band-b > .more[hidden] { display: none; }
+.band-b > .more:hover { color: var(--kr-ink); }
+.band-g .cut { display: none; }
 .band-g { display: flex; flex-wrap: nowrap; align-items: center; gap: 4px 6px; margin-top: 8px; overflow: hidden; min-width: 0; }
 .band-g.two { flex-wrap: wrap; }
 .band-g .lab { font-size: 11px; color: var(--kr-mute); margin-right: 4px; letter-spacing: .03em; white-space: nowrap; flex: none; }
@@ -168,7 +173,13 @@ html.rm { --kr-t-hover: 0ms; --kr-t-panel: 0ms; --kr-t-tl-open: 0ms; --kr-t-tl-c
 .heard { font-size: 11px; color: var(--kr-mute); display: inline-flex; gap: 6px; align-items: center; white-space: nowrap; }
 .heard b { color: var(--kr-sub); font-weight: 500; }
 .basepic { display: inline-flex; align-items: center; gap: 10px; padding-left: 12px; border-left: 1px solid var(--kr-line); font-size: 12px; color: var(--kr-ink); white-space: nowrap; }
-.basepic img { width: 64px; height: 36px; object-fit: cover; display: block; }
+.basepic { gap: 8px; }
+.basepic .bthumb { position: relative; display: block; padding: 6px; margin: -6px; cursor: zoom-in; } /* 둘레 6px까지 '가까이' 판정 */
+.basepic .bthumb > img { width: 48px; height: 27px; object-fit: cover; display: block; }
+.basepic .bprev { position: absolute; left: -6px; top: calc(100% + 4px); z-index: 60; width: 320px; padding: 4px; background: var(--kr-panel); border: 1px solid var(--kr-line); border-radius: var(--kr-r-win); box-shadow: 0 12px 32px rgba(0,0,0,.28); opacity: 0; transform: translateY(-4px) scale(.96); transform-origin: 0 0; pointer-events: none; transition: opacity var(--kr-t-panel) var(--kr-ease-out), transform var(--kr-t-panel) var(--kr-ease-out); }
+.basepic .bprev img { width: 100%; height: auto; display: block; }
+.basepic .bthumb:hover .bprev, .basepic .bthumb:focus-visible .bprev { opacity: 1; transform: none; transition-delay: 60ms; }
+.count:has(.basepic) { flex-wrap: nowrap; } .count:has(.basepic) .acts { flex-wrap: nowrap; }
 
 /* 정렬 메뉴 */
 .sortw { position: relative; display: inline-flex; }
@@ -272,7 +283,7 @@ html.ck-color .ck.on svg { display: none; }
 .selbadge { position: fixed; z-index: 30; right: 20px; height: 26px; min-width: 34px; padding: 0 9px; border: 1px solid var(--kr-acc); border-radius: var(--kr-r-pill); background: var(--kr-panel); color: var(--kr-acc); font-weight: 600; font-size: 12px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 8px 24px rgba(0,0,0,.18); }
 
 /* 아래 검색 칸 560×46 (부품규칙 12) */
-.search { position: fixed; z-index: 25; bottom: 20px; width: 560px; max-width: calc(100vw - 32px); height: 46px; border: 1px solid var(--kr-line); background: var(--kr-panel); border-radius: var(--kr-r-btn); display: flex; align-items: center; padding: 0 0 0 14px; gap: 10px; color: var(--kr-mute); font-size: 13px; box-shadow: 0 8px 24px rgba(0,0,0,.18); transform: translateX(-50%); transition: background-color 180ms var(--kr-ease-out), border-color 180ms var(--kr-ease-out); will-change: transform; }
+.search { position: fixed; z-index: 25; bottom: 20px; width: 560px; max-width: calc(100vw - 32px); height: 46px; border: 1px solid var(--kr-line); background: var(--kr-panel); border-radius: var(--kr-r-btn); display: flex; align-items: center; padding: 0 0 0 14px; gap: 10px; color: var(--kr-mute); font-size: 13px; box-shadow: 0 8px 24px rgba(0,0,0,.18); transform: translateX(-50%); transition: background-color 180ms var(--kr-ease-out), border-color 180ms var(--kr-ease-out), left var(--kr-t-panel, 240ms) var(--kr-ease-out), width var(--kr-t-panel, 240ms) var(--kr-ease-out); will-change: transform; }
 /* 검색 칸 면: 스크롤을 내릴수록 조금씩 투명해져 900px부터 면만 30% 투명(처음 600px·40% → 사용자 조정)(글자·테두리는 그대로 불투명) — 사용자 10-21 23시. --kr-sb-a는 app.js가 rAF로 씀 */
 .search { background: color-mix(in srgb, var(--kr-panel) calc(var(--kr-sb-a, 1) * 100%), transparent); }
 .search.down { background: color-mix(in srgb, var(--kr-panel2) calc(var(--kr-sb-a, 1) * 100%), transparent); }
@@ -280,7 +291,7 @@ html.ck-color .ck.on svg { display: none; }
 .search:hover, .search:focus-within { background: var(--kr-panel); }
 .search.down:hover, .search.down:focus-within { background: var(--kr-panel2); }
 .tl:hover, .tl:focus-within { background: var(--kr-panel); }
-.tl, .keysbtn { transition: background-color 160ms var(--kr-ease-out); }
+.tl, .keysbtn { transition: background-color var(--kr-t-panel) var(--kr-ease-out); } /* P-09(10-22): 상수 160ms → 토큰(동작 줄이기면 0) */
 .search:focus-within { border-color: var(--kr-sub); }
 .search input { flex: 1; min-width: 0; background: none; border: 0; font-size: 13px; color: var(--kr-ink); outline: none; }
 .search input::placeholder { color: var(--kr-mute); }
@@ -346,6 +357,8 @@ html.ck-color .ck.on svg { display: none; }
 .tl .flash { font-size: 11px; color: var(--kr-warn); }
 .keysbtn { position: fixed; right: 20px; z-index: 50; height: 26px; padding: 0 10px; border: 1px solid var(--kr-line); border-radius: var(--kr-r-btn); background: color-mix(in srgb, var(--kr-panel) var(--kr-tl-a), transparent); /* 타임라인과 같은 투명도(사용자 10-22) */ font-size: 11px; color: var(--kr-sub); display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 8px 24px rgba(0,0,0,.12); }
 .keysbtn:hover { color: var(--kr-ink); }
+.keysbtn:hover, .keysbtn:focus-visible { background: var(--kr-panel); } /* M-09: 타임라인처럼 마우스를 올리면 진하게 */
+#q::-webkit-search-cancel-button { display: none; -webkit-appearance: none; } /* P-02: 직접 그린 × 하나만 */
 
 /* ── 창(공통) — 부품규칙 15 ── */
 .dim { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 60; animation: fadeIn 160ms var(--kr-ease-out) both; }
@@ -423,6 +436,7 @@ button.tag:hover { box-shadow: inset 0 0 0 1px var(--kr-sub); }
 .pwin .pin { flex: 1; min-height: 0; display: flex; }
 .pwin .pimg { flex: 1; min-width: 0; min-height: 0; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
 .pwin .pimg img { max-width: 100%; max-height: 100%; display: block; }
+.pwin.closing, .pwin.closing .pin, .pwin.closing .pcenter, .pwin.closing .pimg { overflow: visible; } /* M-10: 닫히며 줄어드는 사진이 잘리지 않게 */
 .pwin .pimg img.xf { transition: opacity 120ms var(--kr-ease-out); }
 .pwin .pfoot { flex: none; padding: 14px 20px 16px; display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--kr-line); }
 .pwin .pfoot .l1 { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
@@ -470,6 +484,7 @@ button.tag:hover { box-shadow: inset 0 0 0 1px var(--kr-sub); }
 .strips h6 button { color: var(--kr-sub); font-weight: 400; }
 .strips h6 button:hover { color: var(--kr-ink); }
 /* 이름 'pgrid'는 작품·사람 페이지가 이미 씀(여백 28px이 끼어 들었음) → wgrid */
+.rangebar { display: flex; align-items: center; gap: 10px; padding: 10px 28px 0; font-size: 12px; color: var(--kr-sub); }
 .wgrid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
 .wgrid button { position: relative; display: block; width: 100%; height: auto; min-width: 0; padding: 0; aspect-ratio: 16 / 9; background: var(--kr-tile); overflow: hidden; }
 .wgrid button img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -526,6 +541,7 @@ button.tag:hover { box-shadow: inset 0 0 0 1px var(--kr-sub); }
 .band-h-r.rdim, .band-v-r.rdim { opacity: .35; transition: opacity 250ms; } /* 이름 'dim'이 창 막(.dim, z 60·화면 전체)과 겹쳐 띠가 가운데 사진 위로 올라왔음 → rdim */
 /* 띠는 가운데 사진보다 위(넘기는 동안 사진 위로 지나가도 됨 — 사용자 10-21 23시 "스크롤중에는 위에 떠도돼"), 멈추면 사진·이름 줄과 겹친 칸만 자연스럽게 사라짐("자연스럽게 사라지게") */
 .band-h-r, .band-v-r { z-index: 3; pointer-events: none; }
+.reel.still:not(.closing) .rcur { z-index: 4; } /* M-08(10-22): 멈춘 동안 퍼포레이션·축선이 가운데 사진 위를 지나지 않게. 넘기는 동안은 띠가 위(사용자 10-21 "스크롤중에는 위에 떠도돼") */
 .band-h-r .rf, .band-v-r .rf { pointer-events: auto; }
 .reel .rf.gate { opacity: 0; pointer-events: none; transition: opacity 240ms var(--kr-ease-out); }
 .reel.settled:not(.closing) .band-h-r, .reel.settled:not(.closing) .band-v-r:not(.rewind), .reel.settled:not(.closing) .rcur { animation: none; }
@@ -684,7 +700,7 @@ button.tag:hover { box-shadow: inset 0 0 0 1px var(--kr-sub); }
 .scene .sh2 .r { margin-left: auto; font-size: 11px; color: var(--kr-mute); }
 .scene .sh2 button.num:hover { color: var(--kr-acc); }
 .pgrid { padding: 10px 28px 0; }
-.detail-card { position: fixed; z-index: 40; bottom: 24px; right: 300px; width: 360px; background: var(--kr-panel); border: 1px solid var(--kr-line); border-radius: var(--kr-r-win); box-shadow: 0 8px 24px rgba(0,0,0,.18); padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; font-size: 12px; }
+.detail-card { position: fixed; z-index: 40; bottom: 24px; right: 300px; transition: right var(--kr-t-panel, 240ms) var(--kr-ease-out); width: 360px; background: var(--kr-panel); border: 1px solid var(--kr-line); border-radius: var(--kr-r-win); box-shadow: 0 8px 24px rgba(0,0,0,.18); padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; font-size: 12px; }
 .detail-card h5 { margin: 0; font-size: 12px; font-weight: 600; display: flex; justify-content: space-between; }
 .detail-card h5 span { font-weight: 400; color: var(--kr-mute); }
 .dgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 28px; padding: 14px 28px; }

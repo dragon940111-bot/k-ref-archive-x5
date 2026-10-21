@@ -70,6 +70,9 @@ KR.renderTimeline = function (anim) {
   host.innerHTML = KR.renderTl() + (S.lp ? '' : '<button type="button" class="keysbtn sh" data-act="keys" style="bottom:' + KR.keysBottom() + 'px;right:' + KR.tlRight() + 'px" aria-expanded="' + S.keysOpen + '" title="단축키 (?)">' + ic('key') + '단축키 <span class="kbd">?</span></button>');
   /* 단축키 버튼: 타임라인 윗변 + 8px — 접힘·펼침·크게 어느 단계든 위에 붙어 따라감 */
   var tlBox = KR.$('#tl', host), kb = KR.$('.keysbtn', host);
+  /* 검색 칸·자세한 정보 카드가 타임라인과 겹치지 않게(M-07·P-04) — 움직이기 전 최종 자리로 잰다 */
+  KR._tlLeft = tlBox ? tlBox.getBoundingClientRect().left : null; if (KR.placeSearch) KR.placeSearch();
+  var dc = KR.$('#dcard'); if (dc && window.innerWidth > 900) dc.style.right = Math.round(window.innerWidth - (KR._tlLeft != null ? KR._tlLeft : window.innerWidth - 20) + 12) + 'px';
   if (tlBox && kb) { var tr = tlBox.getBoundingClientRect(); KR._keysB = Math.round(window.innerHeight - tr.top + 8); kb.style.bottom = KR._keysB + 'px'; var bd = KR.$('#selbadge'); if (bd) bd.style.bottom = (KR._keysB + 34) + 'px'; }
   KR.$$('.tstrip', host).forEach(function (s, i) { if (scr[i]) s.scrollLeft = scr[i]; });
   var g5n = KR.$('.g5', host); if (g5n) g5n.scrollTop = g5s;

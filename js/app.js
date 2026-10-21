@@ -18,6 +18,7 @@ KR.go = function (route, opt) {
   if (rkey(cur) !== rkey(route)) KR.leaveCmpOff();
   var pageChange = cur.name !== route.name || rkey(cur) !== rkey(route);
   S.route = route; S.cond = null; S.draft = null; S.inspFilter = null; S.sortOpen = false;
+  if (pageChange && !opt.keepTabs) KR._sceneRange = null;
   if (route.name === 'work' && opt.tab) S.workTab = opt.tab; else if (route.name === 'work' && pageChange && !opt.keepTabs) { S.workTab = 'all'; S.workSub = 'scene'; }
   if (route.name === 'person' && pageChange && !opt.keepTabs) S.personTab = 'works';
   /* 뒤로 가기 기록은 js/history.js가 동작마다 쌓음 */
@@ -27,7 +28,10 @@ KR.go = function (route, opt) {
   if (pageChange && !KR.reduce()) { var sh = $('#shell'); if (sh) sh.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, easing: 'cubic-bezier(.2,.8,.2,1)' }); }
 };
 KR.scroller = function () { return $('#main') || $('#page') || $('#fvmain'); };
-KR.home = function () { S.scope = null; S.img = null; S.imgFind = false; KR.go({ name: 'search' }); };
+/* 겹친 창 규칙(작동 검수 M-03·G-01·M-05·P-11, 10-22): Esc는 맨 위 창 하나만 닫고,
+   화면을 바꾸는 동작(조건 칩·작품·사람·비슷한 사진·경로·탭)은 겹쳐 있던 창을 모두 닫는다 */
+KR.navCloseAll = function () { S.win = null; S.lp = null; KR._lpLastWork = null; S.cmpOpen = false; S.inspFilter = null; S.cond = null; S.draft = null; S.fav = null; S.exp = null; S.keysOpen = false; S.sortOpen = false; };
+KR.home = function () { KR.navCloseAll(); S.scope = null; S.img = null; S.imgFind = false; KR.go({ name: 'search' }); };
 
 /* ── 그리기 ── */
 KR.render = function (opt) {
@@ -61,6 +65,7 @@ KR.renderOv = function (mode) {
   put('ovcond', S.route.name === 'search' ? KR.renderCond() : '');
   if (put('ovcmp', KR.renderCmp(), ['#cgwrap', '#insp'])) { if (S.cmpOpen) KR.refreshMarks(); }
   var wasWin = !!$('#pwin'), changed = put('ovwin', KR.renderWin(), ['.rp', '.pleft', '.pcenter']);
+  if (S.win) KR.fitWinImg();
   if (mode === 'winopen' || (changed && !wasWin && S.win)) KR.winEnter();
   var rv = $('#ovreel');
   if (!S.lp) { rv.innerHTML = ''; rv._h = ''; }
@@ -128,7 +133,7 @@ function filterSearch(f, v, ctx) {
   if (ctx && ctx.indexOf('w:') === 0) { var w = ctx.slice(2); S.hideWorks = KR.works.filter(function (x) { return x !== w; }); }
   else if (ctx && ctx.indexOf('p:') === 0) { var n = ctx.slice(2), ws = KR.uniq(KR.personPhotos(n).map(function (p) { return p.w; })); S.hideWorks = KR.works.filter(function (x) { return ws.indexOf(x) < 0; }); }
   if (f && !KR.isOn(f, v)) KR.toggleFilter(f, v);
-  S.win = null; KR.go({ name: 'search' });
+  KR.navCloseAll(); KR.go({ name: 'search' });
 }
 function featGo(k, ctx) {
   var map = { '와이드': ['frame', ['익스트림 와이드 샷', '와이드 샷', '미디엄 와이드 샷']], '클로즈업': ['frame', ['미디엄 클로즈업', '클로즈업', '익스트림 클로즈업']], '부드러운 빛': ['light', ['부드러운 빛']], '밤': ['tod', ['밤']] }[k];
@@ -143,16 +148,18 @@ KR.imgFromFile = function (file) {
     var c = document.createElement('canvas'), w = 96, h = Math.max(1, Math.round(96 * im.height / im.width)); c.width = w; c.height = h; var x = c.getContext('2d'); x.drawImage(im, 0, 0, w, h);
     var d = x.getImageData(0, 0, w, h).data, bins = new Array(64).fill(0), n = 0;
     for (var i = 0; i < d.length; i += 4) { bins[(d[i] >> 6) * 16 + (d[i + 1] >> 6) * 4 + (d[i + 2] >> 6)]++; n++; }
-    S.img = { name: file.name.slice(0, 40), src: c.toDataURL('image/jpeg', .8), bins: bins.map(function (b) { return Math.round(b / n * 255); }), ref: null };
+    /* 크게 보기(P-07)용 640px 판 — 색 분포는 그대로 96px에서 */
+    var c2 = document.createElement('canvas'), w2 = Math.min(640, im.width), h2 = Math.max(1, Math.round(w2 * im.height / im.width)); c2.width = w2; c2.height = h2; c2.getContext('2d').drawImage(im, 0, 0, w2, h2);
+    S.img = { name: file.name.slice(0, 40), src: c.toDataURL('image/jpeg', .8), big: c2.toDataURL('image/jpeg', .85), bins: bins.map(function (b) { return Math.round(b / n * 255); }), ref: null };
     S.scope = 'img'; S.imgFind = false; S.imgMore = false; KR.go({ name: 'search' });
   }; im.src = rd.result; };
   rd.readAsDataURL(file);
 };
-KR.imgFromPhoto = function (p) { S.img = { name: KR.title(p) + ' ' + p.tm, src: p.src, bins: p.bins, ref: p }; S.scope = 'img'; S.imgFind = false; S.imgMore = false; S.win = null; KR.go({ name: 'search' }); };
+KR.imgFromPhoto = function (p) { S.img = { name: KR.title(p) + ' ' + p.tm, src: p.src, bins: p.bins, ref: p }; S.scope = 'img'; S.imgFind = false; S.imgMore = false; KR.navCloseAll(); KR.go({ name: 'search' }); };
 
 /* ── 누르기 ── */
 var ACT = {
-  home: function () { KR.home(); }, go: function (el) { var r = el.getAttribute('data-r'); if (r === 'search') KR.home(); else KR.go({ name: r }); },
+  home: function () { KR.home(); }, go: function (el) { var r = el.getAttribute('data-r'); if (r === 'search') KR.home(); else { KR.navCloseAll(); KR.go({ name: r }); } },
   lang: function (el) { S.lang = el.getAttribute('data-v'); KR.save('lang', S.lang); $$('.tile[data-pid]').forEach(function () {}); KR.render(); },
   theme: function () { KR.setTheme(); },
   imgfind: function () { if (S.route.name !== 'search') KR.go({ name: 'search' }); S.imgFind = !S.imgFind; KR.renderGlob(); KR.render(); if (S.imgFind) setTimeout(function () { var dz = $('#drop'); if (dz) dz.scrollIntoView({ block: 'nearest' }); }, 0); },
@@ -213,16 +220,17 @@ var ACT = {
   winref: function () { if (S.winRef && S.winRef !== S.win) KR.winGo(S.winRef); },
   winsetref: function () { if (S.win) { S.winRef = S.win; KR.renderOv(); if (KR.toast) KR.toast('지금 사진을 기준 사진으로 정했어요'); } },
   winpick: function (el) { if (KR._justDragged) return; KR.winGo(el.getAttribute('data-pid')); },
-  winleft: function () { S.winLeft = !S.winLeft; KR.renderOv(); }, winright: function () { S.winRight = !S.winRight; KR.renderOv(); },
+  winleft: function () { S.winLeft = !S.winLeft; KR.save('winleft', S.winLeft ? '1' : '0'); KR.renderOv(); }, winright: function () { S.winRight = !S.winRight; KR.save('winright', S.winRight ? '1' : '0'); KR.renderOv(); },   /* P-05: 펴고 접은 것을 기억 */
   wfav: function () { KR.openFav([S.win]); }, wcmp: function () { var id = S.win; if (S.cmp.indexOf(id) >= 0) KR.delCmp([id]); else KR.addCmp([id]); KR.renderOv(); },
   wfilter: function (el) { S.filters = []; S.color = null; S.tone = {}; S.q = ''; S.hideWorks = []; filterSearch(el.getAttribute('data-f'), el.getAttribute('data-v')); },
   simfind: function () { var p = KR.p(S.win); if (p) KR.imgFromPhoto(p); },
-  simmore: function () { var p = KR.p(S.win); if (!p) return; S.scope = 'sim'; S.simIds = KR.similar(p).map(function (x) { return x.id; }); S.simOf = KR.title(p) + ' ' + p.tm; S.filters = []; S.q = ''; S.color = null; S.tone = {}; S.win = null; KR.go({ name: 'search' }); },
+  simmore: function () { var p = KR.p(S.win); if (!p) return; S.scope = 'sim'; S.simIds = KR.similar(p).map(function (x) { return x.id; }); S.simOf = KR.title(p) + ' ' + p.tm; S.filters = []; S.q = ''; S.color = null; S.tone = {}; KR.navCloseAll(); KR.go({ name: 'search' }); },
   simof: function (el) { var p = KR.p(el.getAttribute('data-pid')); if (!p) return; S.cmpOpen = false; S.scope = 'sim'; S.simIds = KR.similar(p).map(function (x) { return x.id; }); S.simOf = KR.title(p) + ' ' + p.tm; S.win = null; KR.go({ name: 'search' }); },
   orig: function () { KR.toast('시안 — 원본 페이지 주소는 실제 보관함 자료에 있어요(ShotDeck·Frameset)'); },
-  workpage: function (el) { var w = el.getAttribute('data-w'); S.win = null; S.cmpOpen = false; KR.go({ name: 'work', w: w }); },
-  person: function (el) { S.win = null; S.cmpOpen = false; KR.go({ name: 'person', n: el.getAttribute('data-n') }); },
-  worktab: function (el) { S.workTab = el.getAttribute('data-v'); KR.render(); }, worksub: function (el) { S.workSub = el.getAttribute('data-v'); KR.render(); },
+  workpage: function (el) { var w = el.getAttribute('data-w'); KR.navCloseAll(); KR.go({ name: 'work', w: w }); },
+  person: function (el) { KR.navCloseAll(); KR.go({ name: 'person', n: el.getAttribute('data-n') }); },
+  worktab: function (el) { S.workTab = el.getAttribute('data-v'); KR._sceneRange = null; KR.render(); }, worksub: function (el) { S.workSub = el.getAttribute('data-v'); KR._sceneRange = null; KR.render(); },
+  sceneoff: function () { KR._sceneRange = null; KR.render(); },
   persontab: function (el) { S.personTab = el.getAttribute('data-v'); KR.render(); },
   featgo: function (el) { featGo(el.getAttribute('data-k'), el.getAttribute('data-ctx')); },
   gofilter: function (el) { S.filters = []; filterSearch(el.getAttribute('data-f'), el.getAttribute('data-v'), el.getAttribute('data-ctx')); },
@@ -236,7 +244,7 @@ var ACT = {
   seenall: function () { var all = S.seen.slice(0, 120); S.sel = S.sel.length && all.every(function (x) { return S.sel.indexOf(x) >= 0; }) ? [] : all; KR.afterSel(); },
   seendelsel: function () { S.seen = S.seen.filter(function (x) { return S.sel.indexOf(x) < 0; }); S.sel = []; KR.afterSel(); },
   seendelall: function () { if (!S.seenConfirm) { S.seenConfirm = true; KR.renderTimeline(); clearTimeout(KR._sct); KR._sct = setTimeout(function () { S.seenConfirm = false; KR.renderTimeline(); }, 3500); return; } S.seen = []; S.sel = []; S.seenConfirm = false; S.dockLevel = 1; KR.afterSel(); },
-  crumb: function (el) { var g = el.getAttribute('data-go'); if (g === 'home') KR.home(); else if (g === 'search') { S.win = null; S.cmpOpen = false; KR.go({ name: 'search' }); } else if (g === 'cmp') { S.win = null; KR.renderOv(); } },
+  crumb: function (el) { var g = el.getAttribute('data-go'); if (g === 'home') KR.home(); else if (g === 'search') { KR.navCloseAll(); KR.go({ name: 'search' }); } else if (g === 'cmp') { S.win = null; S.lp = null; S.fav = null; S.exp = null; KR.render(); } else { KR.navCloseAll(); KR.go(S.route, { keepTabs: true, keepScroll: true }); } },
   cmpdrop: function (el) { if (KR._justDragged) return; KR.delCmp([el.getAttribute('data-pid')]); },
   cmpclear: function () { S.cmp = []; S.cmpSel = []; S.cmpOpen = false; KR.afterSel(); },
   cmpview: function () { if (!S.cmp.length) return; S.cmpOpen = true; S.inspFilter = null; KR.render(); }, cmpclose: function () { S.cmpOpen = false; S.inspFilter = null; KR.render(); },
@@ -250,7 +258,7 @@ var ACT = {
   inspf: function (el) { var f = el.getAttribute('data-f'), v = el.getAttribute('data-v'); S.inspFilter = S.inspFilter && S.inspFilter.f === f && S.inspFilter.v === v ? null : { f: f, v: v }; if (S.cmpOpen) KR.renderOv(); else KR.render(); },
   /* 즐겨찾기 */
   favclose: function () { var w = $('#fwin'); S.fav = null; KR.saveFav(); if (w && !KR.reduce()) { w.style.animation = 'none'; w.animate([{ opacity: 1 }, { opacity: 0, transform: 'translate(-50%,-50%) scale(.98)' }], { duration: 120, fill: 'forwards' }).onfinish = function () { KR.render(); }; } else KR.render(); },
-  favundo: function () { var F = S.fav, l = S.favLists.find(function (x) { return x.id === F.quick; }); if (!l) return; if (F.undone) { l.ids = l.ids.concat(F.ids.filter(function (x) { return l.ids.indexOf(x) < 0; })); F.undone = false; } else { l.ids = l.ids.filter(function (x) { return F.ids.indexOf(x) < 0; }); F.undone = true; } KR.saveFav(); KR.refreshMarks(); KR.render(); },
+  favundo: function () { var F = S.fav, l = S.favLists.find(function (x) { return x.id === F.quick; }); if (!l) return; var add = F.added || []; if (F.undone) { l.ids = l.ids.concat(add.filter(function (x) { return l.ids.indexOf(x) < 0; })); F.undone = false; } else { l.ids = l.ids.filter(function (x) { return add.indexOf(x) < 0; }); F.undone = true; } KR.saveFav(); KR.refreshMarks(); KR.render(); },
   favdef: function () { var F = S.fav; F.makeDef = !F.makeDef; if (F.makeDef && F.pick) S.favLists.forEach(function (l) { l.def = l.id === F.pick; }); else if (!F.makeDef) S.favLists.forEach(function (l) { l.def = l.id === F.quick; }); KR.saveFav(); KR.renderOv(); },
   favothers: function () { S.fav.others = !S.fav.others; KR.renderOv(); var g = $('.lcards'); if (g && S.fav.others && !KR.reduce()) g.animate([{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: 180, easing: 'cubic-bezier(.2,.8,.2,1)' }); },
   favtoggle: function (el) { var F = S.fav, l = S.favLists.find(function (x) { return x.id === el.getAttribute('data-l'); }); if (!l) return; var all = F.ids.every(function (x) { return l.ids.indexOf(x) >= 0; }); l.ids = all ? l.ids.filter(function (x) { return F.ids.indexOf(x) < 0; }) : l.ids.concat(F.ids.filter(function (x) { return l.ids.indexOf(x) < 0; })); if (!all && l.id !== F.quick) F.pick = l.id; if (F.makeDef && F.pick) S.favLists.forEach(function (x) { x.def = x.id === F.pick; }); KR.saveFav(); KR.refreshMarks(); KR.renderOv(); },
@@ -285,6 +293,12 @@ var ACT = {
   scopy: function () { var i = $('#sianurl'); if (!i) return; try { navigator.clipboard.writeText(i.value).then(function () { KR.toast('주소를 복사했어요'); }, function () { i.select(); }); } catch (e) { i.select(); } }
 };
 KR.ACT = ACT;
+/* 제안 M-12(10-22 사용자 반영): 조건 창이 열린 채 바깥을 누르면 조건 창만 닫힘(뒤 사진 창이 같이 열리지 않게) */
+document.addEventListener('click', function (e) {
+  if (!S.cond || !e.target.closest) return; var t = e.target;
+  if (t.closest('#cwin') || t.closest('[data-act=cond]') || t.closest('#sian') || t.closest('#ovkeys') || t.closest('#ovexp')) return;
+  e.preventDefault(); e.stopPropagation(); ACT.cclose();
+}, true);
 document.addEventListener('click', function (e) {
   var el = e.target.closest('[data-act]'); if (!el || el.disabled) return;
   var a = el.getAttribute('data-act'); if (!ACT[a]) return;
@@ -318,11 +332,24 @@ document.addEventListener('dragleave', function (e) { var d = e.target.closest &
 document.addEventListener('drop', function (e) { var d = e.target.closest && e.target.closest('#drop'); if (d) { e.preventDefault(); d.classList.remove('over'); if (e.dataTransfer.files[0]) KR.imgFromFile(e.dataTransfer.files[0]); } });
 
 /* ── 키(대체 입력 포함 — 체크리스트 B) ── */
+/* G-03(10-22): 창(사진 창·F2·내보내기·단축키)이 열려 있으면 Tab은 맨 위 창 안에서만 돈다. 닫으면 연 칸으로 포커스가 돌아감(closeWin) */
+KR.topModal = function () { return $('#ovexp [role=dialog]') || $('#ovkeys [role=dialog]') || $('#fwin') || $('#pwin'); };
+document.addEventListener('keydown', function (e) {
+  if (e.key !== 'Tab' || e.altKey || e.ctrlKey || e.metaKey) return;
+  var d = KR.topModal(); if (!d) return;
+  var f = [].slice.call(d.querySelectorAll('button:not([disabled]), [href], input:not([disabled]):not([type=hidden]), select, textarea, [tabindex]:not([tabindex="-1"])')).filter(function (el) { var r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden'; });
+  if (!f.length) return;
+  var a = document.activeElement, i = f.indexOf(a);
+  if (!d.contains(a) || i < 0) { e.preventDefault(); (e.shiftKey ? f[f.length - 1] : f[0]).focus(); return; }
+  if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); } else if (e.shiftKey && i === 0) { e.preventDefault(); f[f.length - 1].focus(); }
+}, true);
 window.addEventListener('keydown', function (e) {
   /* Alt+←/→ 는 브라우저 뒤로·앞으로(마우스 뒤로 버튼을 이 키로 보내는 마우스도 있음) — 가로채지 않음. 10-22 사용자: 뒤로 가기를 눌렀는데 사진 창 사진이 바뀜 */
   if (e.altKey || e.key === 'BrowserBack' || e.key === 'BrowserForward') return;
   var t = e.target, tag = t && t.tagName, typing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable);
   var k = e.key;
+  if (S.fav || S.exp || S.keysOpen) { if (k === 'Escape') { if (S.exp) ACT.expclose(); else if (S.fav) ACT.favclose(); else ACT.keys(); } return; }   /* G-01: 맨 위 창부터 */
+  if (S.cond && k === 'Escape' && !typing) { ACT.cclose(); return; }
   if (S.lp && !S.win) {
     if (k === 'Escape') { e.preventDefault(); KR.lpClose(); } else if (k === 'ArrowLeft' || k === 'ArrowRight') { e.preventDefault(); KR.lpStep('h', k === 'ArrowLeft' ? -1 : 1); } else if (k === 'ArrowUp' || k === 'ArrowDown') { e.preventDefault(); KR.lpStep('v', k === 'ArrowUp' ? -1 : 1); }
     else if (k === 'Home' || k === 'Backspace') { e.preventDefault(); KR.lpHome(); } else if (k === 'Enter') { e.preventDefault(); ACT.lpwin(); }
@@ -336,7 +363,6 @@ window.addEventListener('keydown', function (e) {
     if (k === 'f' || k === 'F') { e.preventDefault(); ACT.wfav(); return; } if (k === 'c' || k === 'C') { e.preventDefault(); ACT.wcmp(); return; }
     return;
   }
-  if (S.fav || S.exp || S.keysOpen) { if (k === 'Escape') { if (S.fav) ACT.favclose(); else if (S.exp) ACT.expclose(); else ACT.keys(); } return; }
   if (S.cond && k === 'Escape' && !typing) { ACT.cclose(); return; }
   if (typing) { if (k === 'Escape' && t.blur) t.blur(); return; }
   if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -347,7 +373,9 @@ window.addEventListener('keydown', function (e) {
   if (k === '/' && S.route.name === 'search' && !S.cmpOpen) { var q = $('#q'); if (q) { e.preventDefault(); q.focus(); } return; }
   if (k === 'Escape') { if (S.cmpOpen) { ACT.cmpclose(); return; } if (S.sortOpen) { ACT.sortclose(); return; } if (S.sel.length) { ACT.clearsel(); return; } if (S.imgFind) { ACT.imgfindoff(); return; } return; }
   if (S.cmpOpen) {
-    if (k === '[' || k === ']') { e.preventDefault(); KR.cmpMove(k === '[' ? -1 : 1); return; }
+    /* 제안 P-10(10-22 사용자 반영): 비교함 순서는 Shift + [ ] — [ 는 검색에서 '조건 칸 접기'라 같은 키가 두 뜻이던 것 */
+    if (e.shiftKey && (e.code === 'BracketLeft' || e.code === 'BracketRight' || k === '{' || k === '}')) { e.preventDefault(); KR.cmpMove(e.code === 'BracketLeft' || k === '{' ? -1 : 1); return; }
+    if (k === '[' || k === ']') { e.preventDefault(); return; }
     if (low === 'v') { e.preventDefault(); ACT.cmpclose(); return; }
     if (low === 'i') { e.preventDefault(); KR.toggleInsp(); return; }
     if (low === 'r') { var fid = KR._cmpFocus || KR.focusPid() || S.cmpSel[0] || S.cmp[0]; if (fid) { e.preventDefault(); KR.lpOpen(fid); } return; }
@@ -581,7 +609,9 @@ KR.boot = function () {
   try { history.replaceState(null, ''); } catch (e) {}
   KR.render(); KR.renderSian(); if (KR.histSync) KR.histSync();
   if (qs.scene) setTimeout(function () { KR.scene(qs.scene); }, 30);
-  window.addEventListener('resize', function () { clearTimeout(KR._rz); KR._rz = setTimeout(function () { KR.renderGlob(); }, 100); });
+  /* P-13(10-22): 이미 열린 탭에서 주소 끝 #장면.테마만 바꿔도 그 장면으로 */
+  window.addEventListener('hashchange', function () { var t = (location.hash || '').replace(/^#/, '').split('.').filter(Boolean), sc = null; t.forEach(function (x) { if (['dark', 'light', 'indigo'].indexOf(x) >= 0) KR.setTheme(x); else if (x === 'color') { S.check = 'color'; KR.applyLook(); } else if (x === 'fixed') S.layout = 'fixed'; else if (x === 'rm') { S.rmUser = true; KR.applyLook(); } else sc = x; }); if (sc) KR.scene(sc); else KR.render(); });
+  window.addEventListener('resize', function () { clearTimeout(KR._rz); KR._rz = setTimeout(function () { KR.renderGlob(); if (KR.fitBand) KR.fitBand(); if (S.win) KR.fitWinImg(); }, 100); });
   setInterval(function () { var q = $('#q'); if (q && document.activeElement !== q && !q.value) { var ex = ['밤 역광, 택시', '창가 부드러운 빛', '네온 간판 와이드', '두 사람 오버숄더', '낮 실외 고채도'][Math.floor(Date.now() / 6000) % 5]; q.placeholder = '장면을 말로 찾기 — 예: ' + ex; } }, 6000);
 };
 })();
